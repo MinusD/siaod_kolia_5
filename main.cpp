@@ -108,7 +108,7 @@ public:
         cout << endl;
     }
 
-    void printGraphviz() {
+    void printGraphviz(){
         /*
          *  Вывод графа в формате Graphviz
          */
@@ -128,7 +128,15 @@ public:
 
 int main() {
     Graph graph(6);
-
+    graph.addEdge(0, 1, 7);
+    graph.addEdge(0, 2, 9);
+    graph.addEdge(0, 5, 14);
+    graph.addEdge(1, 2, 10);
+    graph.addEdge(1, 3, 15);
+    graph.addEdge(2, 3, 11);
+    graph.addEdge(2, 5, 2);
+    graph.addEdge(3, 4, 6);
+    graph.addEdge(4, 5, 9);
     graph.printGraph();
     graph.dijkstra(0);
     graph.printGraphviz();
