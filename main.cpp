@@ -20,126 +20,249 @@
 
 using namespace std;
 
-const int INF = 1000000000;
-
-
-// Класс для хранения графа
-class Graph {
-    int size;
-    vector<vector<int>> graph;
+class Node {
 public:
-    Graph(int size) {
-        this->size = size;
-        graph.resize(size);
-        for (int i = 0; i < size; i++) {
-            graph[i].resize(size);
-            for (int j = 0; j < size; j++) {
-                graph[i][j] = INF;
-            }
+    string name;
+
+    explicit Node(string name) : name(std::move(name)) {};
+};
+
+class Graph {
+public:
+    vector<Node> nodes;
+    vector<vector<int>> matrix;
+
+    void addNode(string name) {
+        /*
+         * Добавление узла в граф
+         */
+        Node *node = new Node(name);
+        nodes.push_back(*node);
+        matrix.resize(nodes.size());
+        for (int i = 0; i < nodes.size(); i++) {
+            matrix[i].resize(nodes.size());
         }
     }
 
-    void addEdge(int from, int to, int weight) {
-        graph[from][to] = weight;
+    int getNodeIndex(string name) {
+        /*
+         * Получение индекса узла по его имени
+         */
+        for (int i = 0; i < nodes.size(); i++) {
+            if (nodes[i].name == name) {
+                return i;
+            }
+        }
+        return -1;
     }
 
-    void printGraph() {
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                cout << graph[i][j] << " ";
+
+    void addEdge(string from, string to, int weight) {
+        /*
+         * Добавление ребра в граф
+         */
+        int fromIndex = getNodeIndex(from);
+        int toIndex = getNodeIndex(to);
+        if (fromIndex == -1 || toIndex == -1) {
+            cout << "Node not found" << endl;
+            return;
+        }
+        matrix[fromIndex][toIndex] = weight;
+        matrix[toIndex][fromIndex] = weight;
+    }
+
+    void printMatrix() {
+        /*
+         * Вывод матрицы смежности
+         */
+        cout << "  ";
+        for (int i = 0; i < nodes.size(); i++) {
+            cout << nodes[i].name << " ";
+        }
+        cout << endl;
+        for (int i = 0; i < nodes.size(); i++) {
+            cout << nodes[i].name << " ";
+            for (int j = 0; j < nodes.size(); j++) {
+                cout << matrix[i][j] << " ";
             }
             cout << endl;
         }
     }
 
-    void dijkstra(int start) {
+    void find(string from, string to) {
         /*
-         *  Алгоритм Дейкстры
+         * Поиск кратчайшего пути
          */
-        vector<int> dist(size, INF); // Массив расстояний
-        vector<int> prev(size, -1); // Массив предков
-        vector<bool> used(size, false); // Массив посещенных вершин
-        dist[start] = 0; // Начальная вершина
+        int fromIndex = getNodeIndex(from);
+        int toIndex = getNodeIndex(to);
+        if (fromIndex == -1 || toIndex == -1) {
+            cout << "Node not found" << endl;
+            return;
+        }
+        // Массив для хранения кратчайших расстояний от начальной вершины до всех остальных
+        vector<int> distance(nodes.size(), INT32_MAX);
 
-        // Перебираем все вершины
-        for (int i = 0; i < size; i++) {
-            int v = -1;
+        // Массив для хранения предыдущих вершин
+        vector<int> visited(nodes.size(), 0);
+        vector<int> prev(nodes.size(), -1);
 
-            // Ищем ближайшую непосещенную вершину
-            for (int j = 0; j < size; j++) {
+        // Начальная вершина
+        distance[fromIndex] = 0;
 
-                // Если вершину еще не посещали и она ближе, чем предыдущая
-                if (!used[j] && (v == -1 || dist[j] < dist[v])) {
-                    v = j;
+        // Пока не пройдем все вершины
+        for (int i = 0; i < nodes.size(); i++) {
+            // Ищем вершину с минимальным расстоянием
+            int minIndex = -1;
+            int minDistance = INT32_MAX;
+            for (int j = 0; j < nodes.size(); j++) {
+
+                // Если вершина еще не пройдена и расстояние до нее меньше минимального
+                if (!visited[j] && distance[j] < minDistance) {
+                    minIndex = j;
+                    minDistance = distance[j];
                 }
             }
 
-            // Если ближайшая вершина бесконечно далека, то выходим
-            if (dist[v] == INF) {
+            // Если вершину не нашли, значит путь до нее невозможен
+            if (minIndex == -1) {
                 break;
             }
 
-            // Помечаем вершину как посещенную
-            used[v] = true;
+            // Помечаем вершину как пройденную
+            visited[minIndex] = 1;
 
-            // Перебираем все ребра из вершины v
-            for (int j = 0; j < size; j++) {
-
-                // Если ребро существует и до вершины j еще не дошли
-                if (graph[v][j] != INF) {
-                    int to = j;
-                    int len = graph[v][j];
-                    if (dist[v] + len < dist[to]) {
-                        dist[to] = dist[v] + len;
-                        prev[to] = v;
+            // Обновляем расстояния до соседей
+            for (int j = 0; j < nodes.size(); j++) {
+                if (matrix[minIndex][j] != 0) {
+                    if (distance[j] > distance[minIndex] + matrix[minIndex][j]) {
+                        distance[j] = distance[minIndex] + matrix[minIndex][j];
+                        prev[j] = minIndex;
                     }
                 }
             }
         }
 
         // Выводим кратчайшие расстояния
-        for (int i = 0; i < size; i++) {
-            cout << dist[i] << " ";
+        if (distance[toIndex] == INT32_MAX) {
+            cout << "Path not found" << endl;
+            return;
+        }
+
+        // Восстанавливаем путь
+        vector<int> path;
+        int index = toIndex;
+        while (index != -1) {
+            path.push_back(index);
+            index = prev[index];
+        }
+
+        // Выводим путь
+        cout << "Path: ";
+        for (int i = path.size() - 1; i >= 0; i--) {
+            cout << nodes[path[i]].name << " ";
         }
         cout << endl;
-        for (int i = 0; i < size; i++) {
-            cout << prev[i] << " ";
-        }
-        cout << endl;
+        cout << "Distance: " << distance[toIndex] << endl;
     }
 
     void printGraphviz(){
         /*
-         *  Вывод графа в формате Graphviz
+         * Вывод графа в формате Graphviz
          */
         cout << "graph {" << endl;
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                if (graph[i][j] != INF) {
-                    cout << i << " -- " << j << " [label=" << graph[i][j] << "]" << endl;
+        for (int i = 0; i < nodes.size(); i++) {
+            for (int j = 0; j < nodes.size(); j++) {
+                if (matrix[i][j] != 0 && i < j) {
+                    cout << nodes[i].name << " -- " << nodes[j].name << " [label=" << matrix[i][j] << "]" << endl;
                 }
             }
         }
         cout << "}" << endl;
     }
-
 };
 
 
 int main() {
-    Graph graph(6);
-    graph.addEdge(0, 1, 7);
-    graph.addEdge(0, 2, 9);
-    graph.addEdge(0, 5, 14);
-    graph.addEdge(1, 2, 10);
-    graph.addEdge(1, 3, 15);
-    graph.addEdge(2, 3, 11);
-    graph.addEdge(2, 5, 2);
-    graph.addEdge(3, 4, 6);
-    graph.addEdge(4, 5, 9);
-    graph.printGraph();
-    graph.dijkstra(0);
-    graph.printGraphviz();
-    return 0;
+    Graph graph;
+    graph.addNode("L");
+    graph.addNode("B");
+    graph.addNode("A");
+    graph.addNode("N");
+    graph.addNode("G");
+    graph.addNode("S");
+    graph.addNode("R");
+    graph.addNode("D");
+    graph.addNode("M");
 
+    graph.addEdge("L", "B", 7);
+    graph.addEdge("B", "A", 27);
+    graph.addEdge("L", "N", 10);
+    graph.addEdge("B", "G", 9);
+    graph.addEdge("G", "S", 11);
+    graph.addEdge("A", "M", 15);
+    graph.addEdge("N", "G", 8);
+    graph.addEdge("N", "R", 31);
+    graph.addEdge("R", "D", 32);
+    graph.addEdge("S", "D", 17);
+    graph.addEdge("S", "M", 15);
+    graph.addEdge("D", "M", 21);
+
+    // Текстовое меню со всеми командами
+    string menu = "1. Add node\n"
+                  "2. Add edge\n"
+                  "3. Print matrix\n"
+                  "4. Find path\n"
+                  "5. Print graphviz\n"
+                  "6. Exit\n";
+
+
+    while (true) {
+        cout << menu;
+        int command;
+        cin >> command;
+        switch (command) {
+            case 1: {
+                string name;
+                cout << "Enter node name: ";
+                cin >> name;
+                graph.addNode(name);
+                break;
+            }
+            case 2: {
+                string from, to;
+                int weight;
+                cout << "Enter from: ";
+                cin >> from;
+                cout << "Enter to: ";
+                cin >> to;
+                cout << "Enter weight: ";
+                cin >> weight;
+                graph.addEdge(from, to, weight);
+                break;
+            }
+            case 3: {
+                graph.printMatrix();
+                break;
+            }
+            case 4: {
+                string from, to;
+                cout << "Enter from: ";
+                cin >> from;
+                cout << "Enter to: ";
+                cin >> to;
+                graph.find(from, to);
+                break;
+            }
+            case 5: {
+                graph.printGraphviz();
+                break;
+            }
+            case 6: {
+                return 0;
+            }
+            default: {
+                cout << "Unknown command" << endl;
+            }
+        }
+    }
 }
